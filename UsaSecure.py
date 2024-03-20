@@ -53,19 +53,19 @@ def estimate_bft(entropy):
     results = []
 
     for bft_seconds in [bft_seconds_lower, bft_seconds_upper]:
-        for unit, multiplier in time_units:
-            if bft_seconds >= multiplier:
-                if multiplier <= 24 * 60 * 60:  # Less than or equal to 1 day
-                    results.append(f"{RED}Weak{RESET} - Approximately {int(bft_seconds // multiplier)} {unit}")
-                elif multiplier <= 7 * 24 * 60 * 60:  # Less than or equal to 1 week
-                    results.append(f"{YELLOW}Medium{RESET} - Approximately {int(bft_seconds // multiplier)} {unit}")
-                else:
-                    results.append(f"{GREEN}Strong{RESET} - Approximately {int(bft_seconds // multiplier)} {unit}")
+        if bft_seconds < 1:
+            results.append(f"{RED}Weak{RESET} - Less than a second")
+        else:
+            for unit, multiplier in time_units:
+                if bft_seconds >= multiplier:
+                    if multiplier <= 24 * 60 * 60:  # Less than or equal to 1 day
+                        results.append(f"{RED}Weak{RESET} - Approximately {int(bft_seconds // multiplier)} {unit}")
+                    elif multiplier <= 7 * 24 * 60 * 60:  # Less than or equal to 1 week
+                        results.append(f"{YELLOW}Medium{RESET} - Approximately {int(bft_seconds // multiplier)} {unit}")
+                    else:
+                        results.append(f"{GREEN}Strong{RESET} - Approximately {int(bft_seconds // multiplier)} {unit}")
 
-                break
-
-        # If the estimated time is less than a second
-        results.append(f"{RED}Weak{RESET} - Less than a second")
+                    break
 
     return results
 
@@ -74,13 +74,12 @@ def analyze_password(password):
     alphanumeracy, length, entropy = check_alphanumeracy(password), check_length(password), calculate_entropy(password)
     bft_results = estimate_bft(entropy)
 
-    print(f"{'Contains only letters and numbers' if alphanumeracy else 'Contains more than just letters and numbers'}")
+    print(f"\nPassword {'Contains only letters and numbers' if alphanumeracy else 'Contains more than just letters and numbers'}")
     print(f"Password Length: {length}")
     print(f"Entropy: {entropy:.2f} bits")
-    print("Lower End Estimate:")
-    print(f"Brute Force Time Estimate: {bft_results[0]}")
-    print("Higher End Estimate:")
-    print(f"Brute Force Time Estimate: {bft_results[1]}")
+    print("Brute Force Time:")
+    print(f"Lower End Estimate: {bft_results[0]}")
+    print(f"Higher End Estimate: {bft_results[1]}")
 
 
 def main():
