@@ -64,8 +64,8 @@ def estimate_bft(entropy):
 
                 break
 
-    # If the estimated time is less than a second
-    results.append(f"{RED}Weak{RESET} - Less than a second")
+        # If the estimated time is less than a second
+        results.append(f"{RED}Weak{RESET} - Less than a second")
 
     return results
 
@@ -86,6 +86,13 @@ def analyze_password(password):
 def main():
     while True:
         password = get_password()
+
+        print("Please specify the desired brute-force times for different attack scenarios:")
+        print(" 1 - Direct brute forcing")
+        print(" 2 - Dictionary attacking")
+        print(" 3 - Password spraying")
+        input('Enter attack type to continue... \n')
+
         analyze_password(password)
         choice = input("Check another password? (y/n): ")
         if choice.lower() != "y":
