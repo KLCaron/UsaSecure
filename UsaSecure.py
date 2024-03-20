@@ -36,40 +36,51 @@ def calculate_entropy(password):
 
 
 def estimate_bft(entropy):
-    # we're assuming the attacker can try 10^12 passwords a second.
-    bft_seconds = 2 ** entropy / (10 ** 12)
+    # Assuming the attacker can try between 2.5 billion to 100 billion passwords a second.
+    bft_seconds_lower = 2 ** entropy / (2.5 * 10 ** 9)  # Lower end: 2.5 billion attempts per second
+    bft_seconds_upper = 2 ** entropy / (1 * 10 ** 11)  # Upper end: 100 billion attempts per second
 
     time_units = [
-        ("years", 12 * 30 * 24 * 60 * 60),
-        ("months", 30 * 24 * 60 * 60),
-        ("weeks", 7 * 24 * 60 * 60),
-        ("days", 24 * 60 * 60),
-        ("hours", 60 * 60),
-        ("minutes", 60),
-        ("seconds", 1)
+        ("year(s)", 12 * 30 * 24 * 60 * 60),
+        ("month(s)", 30 * 24 * 60 * 60),
+        ("week(s)", 7 * 24 * 60 * 60),
+        ("day(s)", 24 * 60 * 60),
+        ("hour(s)", 60 * 60),
+        ("minute(s)", 60),
+        ("second(s)", 1)
     ]
 
-    for unit, multiplier in time_units:
-        if bft_seconds >= multiplier:
-            if multiplier <= 24 * 60 * 60:  # Less than or equal to 1 day
-                return f"{RED}Weak{RESET} - Approximately {int(bft_seconds // multiplier)} {unit}"
-            elif multiplier <= 7 * 24 * 60 * 60:  # Less than or equal to 1 week
-                return f"{YELLOW}Medium{RESET} - Approximately {int(bft_seconds // multiplier)} {unit}"
-            else:
-                return f"{GREEN}Strong{RESET} - Approximately {int(bft_seconds // multiplier)} {unit}"
+    results = []
+
+    for bft_seconds in [bft_seconds_lower, bft_seconds_upper]:
+        for unit, multiplier in time_units:
+            if bft_seconds >= multiplier:
+                if multiplier <= 24 * 60 * 60:  # Less than or equal to 1 day
+                    results.append(f"{RED}Weak{RESET} - Approximately {int(bft_seconds // multiplier)} {unit}")
+                elif multiplier <= 7 * 24 * 60 * 60:  # Less than or equal to 1 week
+                    results.append(f"{YELLOW}Medium{RESET} - Approximately {int(bft_seconds // multiplier)} {unit}")
+                else:
+                    results.append(f"{GREEN}Strong{RESET} - Approximately {int(bft_seconds // multiplier)} {unit}")
+
+                break
 
     # If the estimated time is less than a second
-    return f"{RED}Weak{RESET} - Less than a second"
+    results.append(f"{RED}Weak{RESET} - Less than a second")
+
+    return results
 
 
 def analyze_password(password):
     alphanumeracy, length, entropy = check_alphanumeracy(password), check_length(password), calculate_entropy(password)
-    bft = estimate_bft(entropy)
+    bft_results = estimate_bft(entropy)
 
     print(f"{'Contains only letters and numbers' if alphanumeracy else 'Contains more than just letters and numbers'}")
     print(f"Password Length: {length}")
     print(f"Entropy: {entropy:.2f} bits")
-    print(f"Brute Force Time Estimate: {bft}")
+    print("Lower End Estimate:")
+    print(f"Brute Force Time Estimate: {bft_results[0]}")
+    print("Higher End Estimate:")
+    print(f"Brute Force Time Estimate: {bft_results[1]}")
 
 
 def main():
