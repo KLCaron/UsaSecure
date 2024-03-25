@@ -1,6 +1,7 @@
 import getpass
 import math
 from substitutions import CHARACTER_SUBSTITUTIONS
+from information import launch_information
 # ANSI color codes for text formatting
 RED = "\033[91m"
 YELLOW = "\033[93m"
@@ -29,7 +30,7 @@ DICTIONARY = load_dictionary()
 
 def get_password():
     """
-    Prompt the user to enter a password and return it.
+    Prompt the user to enter a password and return it. User can also enter '?' to receive information on what this is.
 
     :return: The password entered by the user.
     :rtype: str
@@ -37,11 +38,13 @@ def get_password():
     while True:
         hidden = input("Would you like to hide your password input? (y/n): ")
         if hidden.lower() == "y":
-            password = getpass.getpass("Enter your potential password: ")
+            password = getpass.getpass("Enter your potential password, or press '?' to find information on this app: ")
         else:
-            password = input("Enter your potential password: ")
+            password = input("Enter your potential password, or press '?' to find information on this app: ")
         if len(password) == 0:
             print("Password cannot be empty. Please enter a password")
+        elif password.lower() == '?':
+            launch_information()
         else:
             return password
 
