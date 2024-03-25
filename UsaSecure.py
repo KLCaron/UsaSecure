@@ -1,23 +1,39 @@
 import getpass
 import math
 from substitutions import CHARACTER_SUBSTITUTIONS
-
+# ANSI color codes for text formatting
 RED = "\033[91m"
 YELLOW = "\033[93m"
 GREEN = "\033[92m"
 RESET = "\033[0m"
+# Path to the password dictionary
+DICTIONARY_SOURCE = "fortinet-2021_passwords.txt"
 
 
 def load_dictionary():
-    with open("rockyou.txt", "r", encoding="latin-1") as file:
-        passwords = file.read().splitlines()
+    """
+    Load the password dictionary from the specified file.
+
+    :return: A list of passwords loaded from the file.
+    :rtype: list[str]
+    """
+    with open(DICTIONARY_SOURCE, "r", encoding="latin-1") as file:
+        # Read each line from the file and remove leading/trailing whitespaces
+        passwords = [line.strip() for line in file]
     return passwords
 
 
+# Load the dictionary of passwords
 DICTIONARY = load_dictionary()
 
 
 def get_password():
+    """
+    Prompt the user to enter a password and return it.
+
+    :return: The password entered by the user.
+    :rtype: str
+    """
     while True:
         hidden = input("Would you like to hide your password input? (y/n): ")
         if hidden.lower() == "y":
@@ -31,22 +47,55 @@ def get_password():
 
 
 def check_alphanumeracy(password):
+    """
+    Check if the given password contains only alphanumeric characters.
+
+    :param str password: The password to be checked.
+    :return: True if the password contains only alphanumeric characters, False otherwise.
+    :rtype: bool
+    """
     alphanumeracy = password.isalnum()
     return alphanumeracy
 
 
 def check_length(password):
+    """
+    Calculate the length of the password.
+
+    :param str password: The password to be checked.
+    :return: The length of the password.
+    :rtype: int
+    """
     length = len(password)
     return length
 
 
 def calculate_entropy(password):
+    """
+    Calculate the entropy of the given password.
+
+    Entropy is a measure of password strength based on the number of unique characters it contains.
+
+    :param str password: The password for which entropy needs to be calculated.
+    :return: The entropy value of the password.
+    :rtype: float
+    """
     unique_characters = len(set(password))
     entropy = math.log2(unique_characters) * len(password)
     return entropy
 
 
 def estimate_bft(entropy):
+    """
+    Estimate the time required for a brute-force attack to guess a password based on its entropy.
+
+    Args:
+    entropy (float): The entropy of the password.
+
+    Returns:
+    list[str]: A list of strings indicating the strength of the password and the estimated time for a brute-force
+    attack to guess it.
+    """
     # Assuming the attacker can try between 2.5 billion to 100 billion passwords a second.
     bft_seconds_lower = 2 ** entropy / (2.5 * 10 ** 9)  # Lower end: 2.5 billion attempts per second
     bft_seconds_upper = 2 ** entropy / (1 * 10 ** 11)  # Upper end: 100 billion attempts per second
@@ -82,6 +131,19 @@ def estimate_bft(entropy):
 
 
 def dictionary_attack(password):
+    """
+    Perform a dictionary attack to check the strength of a password.
+
+    Args:
+    password (str): The password to be checked.
+
+    Returns:
+    int: An integer indicating the strength of the password:
+        - 0: No match found in the dictionary.
+        - 1: Direct match found in the dictionary.
+        - 2: Substring match found in the dictionary.
+        - 3: Substring match found in the dictionary after character demunging.
+    """
     password_lower = password.lower()
     demunge_match = False
 
@@ -110,10 +172,48 @@ def dictionary_attack(password):
     return 0
 
 
+def spray_attack(password):
+    """
+    Perform a spray attack to estimate the likelihood of a user's password being chosen
+    among randomly selected passwords.
+
+    Args:
+    password (str): The user's password to be analyzed.
+
+    Returns:
+    str: A formatted probability representing the likelihood of the user's password being chosen among 5
+    random passwords.
+    """
+    # Count occurrences of the user's password in the entire dictionary
+    user_password_frequency = DICTIONARY.count(password)
+
+    # Calculate the total number of passwords in the dictionary (including duplicates)
+    total_passwords = len(DICTIONARY)
+
+    # Calculate the percentage of the user's password in the total number of passwords
+    user_password_percentage = (user_password_frequency / total_passwords) * 100
+
+    # Calculate the probability of the user's password being chosen among 5 random passwords
+    probability_spray = (user_password_percentage / 100) * (5 / total_passwords)
+
+    # Format the probability for presentation
+    prob = "{:.2e}".format(probability_spray) if probability_spray < 0.01 else "{:.2f}".format(probability_spray)
+    return prob
+
+
 def analyze_password(password):
+    """
+    Analyze the strength of a password based on various criteria and print the analysis.
+
+    Args:
+    password (str): The password to be analyzed.
+    """
     alphanumeracy, length, entropy = check_alphanumeracy(password), check_length(password), calculate_entropy(password)
     bft_results = estimate_bft(entropy)
     dictionary_attack_result = dictionary_attack(password)
+    spray_attack_result = 0.00
+    if dictionary_attack_result == 1:
+        spray_attack_result = spray_attack(password)
 
     print(
         f"\nPassword {'Contains only letters and numbers' if alphanumeracy else 'Contains more than just letters and numbers'}",
@@ -123,7 +223,7 @@ def analyze_password(password):
         f"\nLower End Estimate: {bft_results[0]}",
         f"\nHigher End Estimate: {bft_results[1]}",
         )
-    print("Dictionary Attack: ", end='')
+    print("Dictionary Attack Estimate: ", end='')
     if dictionary_attack_result == 1:
         print("Vulnerable")
     elif dictionary_attack_result == 2:
@@ -132,9 +232,13 @@ def analyze_password(password):
         print("Distantly Vulnerable")
     else:
         print("Not Vulnerable")
+    print(f"Spray Attack Vulnerability Estimate: {'NA' if spray_attack_result == '0.00' else spray_attack_result + ' %'}")
 
 
 def main():
+    """
+    The main function to interactively check the strength of passwords entered by the user.
+    """
     while True:
         password = get_password()
 
