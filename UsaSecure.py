@@ -1,9 +1,20 @@
 import getpass
 import math
+from substitutions import CHARACTER_SUBSTITUTIONS
+
 RED = "\033[91m"
 YELLOW = "\033[93m"
 GREEN = "\033[92m"
 RESET = "\033[0m"
+
+
+def load_dictionary():
+    with open("rockyou.txt", "r", encoding="latin-1") as file:
+        passwords = file.read().splitlines()
+    return passwords
+
+
+DICTIONARY = load_dictionary()
 
 
 def get_password():
@@ -70,30 +81,65 @@ def estimate_bft(entropy):
     return results
 
 
+def dictionary_attack(password):
+    password_lower = password.lower()
+    demunge_match = False
+
+    # check for a direct match.
+    if password in DICTIONARY:
+        return 1
+
+    # create de-munged version of the password
+    password_lower_demunged = password_lower
+    for char, replacement in CHARACTER_SUBSTITUTIONS.items():
+        password_lower_demunged = password_lower_demunged.replace(char, replacement)
+
+    # check for a substring match, and a de-munged substring match.
+    for word in DICTIONARY:
+        word_lower = word.lower()
+        if len(word_lower) > 4:
+            if word_lower in password_lower:
+                return 2
+            elif word_lower in password_lower_demunged:
+                demunge_match = True
+
+    if demunge_match:
+        return 3
+
+    # no substring, de-munge, or direct match found
+    return 0
+
+
 def analyze_password(password):
     alphanumeracy, length, entropy = check_alphanumeracy(password), check_length(password), calculate_entropy(password)
     bft_results = estimate_bft(entropy)
+    dictionary_attack_result = dictionary_attack(password)
 
-    print(f"\nPassword {'Contains only letters and numbers' if alphanumeracy else 'Contains more than just letters and numbers'}")
-    print(f"Password Length: {length}")
-    print(f"Entropy: {entropy:.2f} bits")
-    print("Brute Force Time:")
-    print(f"Lower End Estimate: {bft_results[0]}")
-    print(f"Higher End Estimate: {bft_results[1]}")
+    print(
+        f"\nPassword {'Contains only letters and numbers' if alphanumeracy else 'Contains more than just letters and numbers'}",
+        f"\nPassword Length: {length}",
+        f"\nEntropy: {entropy:.2f} bits",
+        "\nBrute Force Time:",
+        f"\nLower End Estimate: {bft_results[0]}",
+        f"\nHigher End Estimate: {bft_results[1]}",
+        )
+    print("Dictionary Attack: ", end='')
+    if dictionary_attack_result == 1:
+        print("Vulnerable")
+    elif dictionary_attack_result == 2:
+        print("Somewhat Vulnerable")
+    elif dictionary_attack_result == 3:
+        print("Distantly Vulnerable")
+    else:
+        print("Not Vulnerable")
 
 
 def main():
     while True:
         password = get_password()
 
-        print("Please specify the desired brute-force times for different attack scenarios:")
-        print(" 1 - Direct brute forcing")
-        print(" 2 - Dictionary attacking")
-        print(" 3 - Password spraying")
-        input('Enter attack type to continue... \n')
-
         analyze_password(password)
-        choice = input("Check another password? (y/n): ")
+        choice = input("\nCheck another password? (y/n): ")
         if choice.lower() != "y":
             break
 
